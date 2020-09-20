@@ -5,7 +5,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/phalpin/GoGoGadgetRESTAPI/todo/helpers"
 	"github.com/phalpin/GoGoGadgetRESTAPI/todo/models"
-	"github.com/phalpin/GoGoGadgetRESTAPI/todo/pherr"
 	"net/http"
 )
 
@@ -32,20 +31,20 @@ func (c *ApiController) CreateTodo(w http.ResponseWriter, req *http.Request) {
 	var obj *models.ToDo
 	err := json.NewDecoder(req.Body).Decode(&obj)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		helpers.WriteErrorResponse(w, err)
 		return
 	}
 
 	insertErr := c.service.InsertOne(req.Context(), obj)
 	if insertErr != nil {
-		http.Error(w, insertErr.Error(), http.StatusInternalServerError)
+		helpers.WriteErrorResponse(w, insertErr)
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
 	res, marshalErr := json.Marshal(obj)
 	if marshalErr != nil {
-		http.Error(w, marshalErr.Error(), http.StatusInternalServerError)
+		helpers.WriteErrorResponse(w, marshalErr)
 		return
 	}
 
@@ -55,24 +54,19 @@ func (c *ApiController) CreateTodo(w http.ResponseWriter, req *http.Request) {
 func (c *ApiController) ReadToDo(w http.ResponseWriter, req *http.Request) {
 	id, err := helpers.GetRouteVariable(req, "id")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		helpers.WriteErrorResponse(w, err)
 		return
 	}
 
 	obj, getErr := c.service.GetOne(req.Context(), id)
 	if getErr != nil {
-		casted, ok := getErr.(*pherr.KnownError)
-		if ok {
-			casted.WriteHttpResponse(w)
-			return
-		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		helpers.WriteErrorResponse(w, getErr)
 		return
 	}
 
 	res, marshalErr := json.Marshal(obj)
 	if marshalErr != nil {
-		http.Error(w, marshalErr.Error(), http.StatusInternalServerError)
+		helpers.WriteErrorResponse(w, marshalErr)
 		return
 	}
 
@@ -83,14 +77,14 @@ func (c *ApiController) ReadToDo(w http.ResponseWriter, req *http.Request) {
 func (c *ApiController) UpdateTodo(w http.ResponseWriter, req *http.Request) {
 	id, err := helpers.GetRouteVariable(req, "id")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		helpers.WriteErrorResponse(w, err)
 		return
 	}
 
 	var obj *models.ToDo
 	decodeErr := json.NewDecoder(req.Body).Decode(&obj)
 	if decodeErr != nil {
-		http.Error(w, decodeErr.Error(), http.StatusBadRequest)
+		helpers.WriteErrorResponse(w, err)
 		return
 	}
 
@@ -98,7 +92,7 @@ func (c *ApiController) UpdateTodo(w http.ResponseWriter, req *http.Request) {
 
 	updateErr := c.service.UpdateOne(req.Context(), obj)
 	if updateErr != nil {
-		http.Error(w, updateErr.Error(), http.StatusInternalServerError)
+		helpers.WriteErrorResponse(w, updateErr)
 		return
 	}
 
@@ -108,13 +102,13 @@ func (c *ApiController) UpdateTodo(w http.ResponseWriter, req *http.Request) {
 func (c *ApiController) DeleteToDo(w http.ResponseWriter, req *http.Request) {
 	id, err := helpers.GetRouteVariable(req, "id")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		helpers.WriteErrorResponse(w, err)
 		return
 	}
 
 	deleteErr := c.service.DeleteOne(req.Context(), id)
 	if deleteErr != nil {
-		http.Error(w, deleteErr.Error(), http.StatusInternalServerError)
+		helpers.WriteErrorResponse(w, deleteErr)
 		return
 	}
 

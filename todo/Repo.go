@@ -2,9 +2,9 @@ package todo
 
 import (
 	"context"
-	"errors"
 	"github.com/phalpin/GoGoGadgetRESTAPI/todo/models"
-	"github.com/phalpin/GoGoGadgetRESTAPI/todo/pherr"
+	"github.com/phalpin/liberr"
+	"github.com/phalpin/liberr/errortype"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,10 +13,6 @@ import (
 )
 
 const collectionName = "Todos"
-const insertInvalidDueToIdExistingAlready = "unable to insert a record that is already saved"
-const mustPassIdToGetOneMethod = "you must provide an id when retrieving a saved record"
-const mustPassIdToUpdateOneMethod = "you must provide an id when updating a saved record"
-const mustPassIdToDeleteOneMethod = "you must provide an id when deleting a saved record"
 
 type IRepo interface {
 	InsertOne(ctx context.Context, todo *models.ToDo) error
@@ -50,10 +46,9 @@ func (t *Repo) getClient() (*mongo.Client, error) {
 		defer cancel()
 		client, err := mongo.Connect(ctx, options.Client().ApplyURI(t.mongoConnStr))
 		if err != nil {
-			return nil, err
+			return nil, liberr.NewBaseFromError(err)
 		}
 		t.client = client
-		//defer client.Disconnect(ctx)
 
 		return client, nil
 	}
@@ -63,7 +58,7 @@ func (t *Repo) getClient() (*mongo.Client, error) {
 func (t *Repo) getCollection(collName string) (*mongo.Collection, error) {
 	cl, err := t.getClient()
 	if err != nil {
-		return nil, pherr.NewKnown(err, "The Database is experience problems. Please try again...", pherr.WithErrorType(pherr.Unknown))
+		return nil, liberr.NewKnownFromErr(err, "The Database is experiencing problems. Please try again...", liberr.WithErrorType(errortype.Unknown))
 	}
 
 	collection := cl.Database(t.mongoDbName).Collection(collName)
@@ -72,20 +67,15 @@ func (t *Repo) getCollection(collName string) (*mongo.Collection, error) {
 }
 
 func (t *Repo) InsertOne(ctx context.Context, todo *models.ToDo) error {
-	if todo.Id != "" {
-		return errors.New(insertInvalidDueToIdExistingAlready)
-	}
 
 	coll, err := t.getCollection(collectionName)
 	if err != nil {
-		return err
+		return liberr.NewBaseFromError(err)
 	}
 
 	result, insertErr := coll.InsertOne(ctx, todo)
 	if insertErr != nil {
-		return insertErr
-		//Note: Need to either use a proper logging package or PrintF and come up with some kind of formatting.
-		//log.Fatal("Failure to insert record:", insertErr.Error())
+		return liberr.NewBaseFromError(insertErr)
 	}
 
 	todo.Id = result.InsertedID.(primitive.ObjectID).String()
@@ -94,45 +84,42 @@ func (t *Repo) InsertOne(ctx context.Context, todo *models.ToDo) error {
 }
 
 func (t *Repo) GetOne(ctx context.Context, id string) (*models.ToDo, error) {
-	if id == "" {
-		return nil, errors.New(mustPassIdToGetOneMethod)
-	}
-
 	coll, err := t.getCollection(collectionName)
 	if err != nil {
-		return nil, err
+		return nil, liberr.NewBaseFromError(err)
 	}
 
 	objId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, pherr.NewKnown(err, "Malformed ID", pherr.WithErrorType(pherr.InvalidArgument))
+		return nil, liberr.NewKnownFromErr(err, "Malformed ID", liberr.WithErrorType(errortype.InvalidArgument))
 	}
 
 	filter := bson.D{{"_id", objId}}
 
 	retVal := &models.ToDo{}
-	findErr := coll.FindOne(ctx, filter).Decode(&retVal)
-	defer ctx.Done()
-	if findErr != nil {
-		return nil, err
+	findResult := coll.FindOne(ctx, filter)
+	if findResult.Err() == nil {
+		decodeErr := findResult.Decode(&retVal)
+		if decodeErr != nil {
+			return nil, liberr.NewBaseFromError(decodeErr)
+		}
+
+		defer ctx.Done()
+		return retVal, nil
 	}
 
-	return retVal, nil
+	return nil, nil
 }
 
 func (t *Repo) UpdateOne(ctx context.Context, todo *models.ToDo) error {
-	if todo.Id == "" {
-		return errors.New(mustPassIdToUpdateOneMethod)
-	}
-
 	coll, err := t.getCollection(collectionName)
 	if err != nil {
-		return err
+		return liberr.NewBaseFromError(err)
 	}
 
 	objectId, objIdErr := primitive.ObjectIDFromHex(todo.Id)
 	if objIdErr != nil {
-		return objIdErr
+		return liberr.NewKnown("invalid id passed", "An invalid ID was passed. Please check the ID and try again.", liberr.WithErrorType(errortype.InvalidArgument))
 	}
 
 	filter := bson.D{{"_id", objectId}}
@@ -146,17 +133,13 @@ func (t *Repo) UpdateOne(ctx context.Context, todo *models.ToDo) error {
 
 	_, updateErr := coll.UpdateOne(ctx, filter, update)
 	if updateErr != nil {
-		return updateErr
+		return liberr.NewBaseFromError(updateErr)
 	}
 
 	return nil
 }
 
 func (t *Repo) DeleteOne(ctx context.Context, id string) error {
-	if id == "" {
-		return errors.New(mustPassIdToDeleteOneMethod)
-	}
-
 	coll, err := t.getCollection(collectionName)
 	if err != nil {
 		return err
