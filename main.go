@@ -5,6 +5,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/phalpin/GoGoGadgetRESTAPI/middleware"
 	"github.com/phalpin/GoGoGadgetRESTAPI/todo"
+	"github.com/phalpin/GoGoGadgetRESTAPI/todo/api"
 	"net/http"
 	"os"
 )
@@ -14,7 +15,7 @@ func main() {
 	connStr := os.Getenv("MongoConnStr")
 	dbName := "GoGoGadgetRestfulAPI"
 
-	var Services = map[string]IRestController{
+	var Services = map[string]IServiceController{
 		"todo": todo.NewController(
 			todo.NewService(
 				todo.NewRepo(
@@ -35,7 +36,10 @@ func main() {
 	//Register Services
 	for key, elem := range Services {
 		subRouter := router.Name(fmt.Sprintf("[Controller] %v", key)).PathPrefix(fmt.Sprintf("/%v", key)).Subrouter()
-		elem.Initialize(subRouter)
+		handlers := elem.GetHandlers()
+		for _, handler := range handlers {
+			subRouter.Name(handler.Name).HandlerFunc(handler.ServeHTTP).Path(handler.Path).Methods(handler.Methods...)
+		}
 		router.Handle(fmt.Sprintf("/%v", key), subRouter)
 	}
 
@@ -61,6 +65,6 @@ func homeLink(w http.ResponseWriter, r *http.Request) {
 	var _ = r
 }
 
-type IRestController interface {
-	Initialize(router *mux.Router)
+type IServiceController interface {
+	GetHandlers() []*api.HandlerPackage
 }

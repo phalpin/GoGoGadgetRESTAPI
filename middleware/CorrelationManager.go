@@ -14,9 +14,8 @@ func CorrelationManager(next http.Handler) http.Handler {
 		if correlationId == "" {
 			correlationId = uuid.New().String()
 		}
-
+		w.Header().Add(CorrelationKey, correlationId)
 		SetContextStorageValue(r, CorrelationKey, correlationId)
 		next.ServeHTTP(w, r)
-		w.Header().Add(CorrelationKey, correlationId)
 	})
 }

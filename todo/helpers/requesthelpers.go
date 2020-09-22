@@ -51,6 +51,5 @@ func WriteErrorResponse(w http.ResponseWriter, err error) {
 	res, _ := json.Marshal(respVal)
 
 	w.WriteHeader(statusCode)
-	w.Header().Add("Content-Type", "application/json")
 	_, _ = w.Write(res)
 }
