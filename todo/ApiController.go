@@ -2,9 +2,8 @@ package todo
 
 import (
 	"encoding/json"
-	"github.com/phalpin/GoGoGadgetRESTAPI/todo/api"
-	"github.com/phalpin/GoGoGadgetRESTAPI/todo/helpers"
 	"github.com/phalpin/GoGoGadgetRESTAPI/todo/models"
+	"github.com/phalpin/libapi"
 	"net/http"
 )
 
@@ -20,76 +19,76 @@ func NewController(svc IService) *ApiController {
 	return retVal
 }
 
-func (c *ApiController) GetHandlers() []*api.HandlerPackage {
-	return []*api.HandlerPackage{
-		api.HandlerRecord("todo.create", "", c.CreateTodo, "POST"),
-		api.HandlerRecord("todo.read", "/{id}", c.ReadToDo, "GET"),
-		api.HandlerRecord("todo.update", "/{id}", c.UpdateTodo, "PUT"),
-		api.HandlerRecord("todo.delete", "/{id}", c.DeleteToDo, "DELETE"),
+func (c *ApiController) GetHandlers() []*libapi.HandlerPackage {
+	return []*libapi.HandlerPackage{
+		libapi.HandlerRecord("todo.create", "", c.CreateTodo, "POST"),
+		libapi.HandlerRecord("todo.read", "/{id}", c.ReadToDo, "GET"),
+		libapi.HandlerRecord("todo.update", "/{id}", c.UpdateTodo, "PUT"),
+		libapi.HandlerRecord("todo.delete", "/{id}", c.DeleteToDo, "DELETE"),
 	}
 }
 
-func (c *ApiController) CreateTodo(req *http.Request) (*api.ActionResult, error) {
+func (c *ApiController) CreateTodo(req *http.Request) (*libapi.ActionResult, error) {
 	var obj *models.ToDo
 	err := json.NewDecoder(req.Body).Decode(&obj)
 	if err != nil {
-		return api.ErrResult(err)
+		return libapi.ErrResult(err)
 	}
 
 	insertErr := c.service.InsertOne(req.Context(), obj)
 	if insertErr != nil {
-		return api.ErrResult(insertErr)
+		return libapi.ErrResult(insertErr)
 	}
 
-	return api.ObjResult(obj)
+	return libapi.ObjResult(obj)
 }
 
-func (c *ApiController) ReadToDo(req *http.Request) (*api.ActionResult, error) {
-	id, err := helpers.GetRouteVariable(req, "id")
+func (c *ApiController) ReadToDo(req *http.Request) (*libapi.ActionResult, error) {
+	id, err := libapi.GetRouteVariable(req, "id")
 	if err != nil {
-		return api.ErrResult(err)
+		return libapi.ErrResult(err)
 	}
 
 	obj, getErr := c.service.GetOne(req.Context(), id)
 	if getErr != nil {
-		return api.ErrResult(getErr)
+		return libapi.ErrResult(getErr)
 	}
 
-	return api.ObjResult(obj)
+	return libapi.ObjResult(obj)
 }
 
-func (c *ApiController) UpdateTodo(req *http.Request) (*api.ActionResult, error) {
-	id, err := helpers.GetRouteVariable(req, "id")
+func (c *ApiController) UpdateTodo(req *http.Request) (*libapi.ActionResult, error) {
+	id, err := libapi.GetRouteVariable(req, "id")
 	if err != nil {
-		return api.ErrResult(err)
+		return libapi.ErrResult(err)
 	}
 
 	var obj *models.ToDo
 	decodeErr := json.NewDecoder(req.Body).Decode(&obj)
 	if decodeErr != nil {
-		return api.ErrResult(decodeErr)
+		return libapi.ErrResult(decodeErr)
 	}
 
 	obj.Id = id
 
 	updateErr := c.service.UpdateOne(req.Context(), obj)
 	if updateErr != nil {
-		return api.ErrResult(updateErr)
+		return libapi.ErrResult(updateErr)
 	}
 
-	return api.NilResult()
+	return libapi.NilResult()
 }
 
-func (c *ApiController) DeleteToDo(req *http.Request) (*api.ActionResult, error) {
-	id, err := helpers.GetRouteVariable(req, "id")
+func (c *ApiController) DeleteToDo(req *http.Request) (*libapi.ActionResult, error) {
+	id, err := libapi.GetRouteVariable(req, "id")
 	if err != nil {
-		return api.ErrResult(err)
+		return libapi.ErrResult(err)
 	}
 
 	deleteErr := c.service.DeleteOne(req.Context(), id)
 	if deleteErr != nil {
-		return api.ErrResult(deleteErr)
+		return libapi.ErrResult(deleteErr)
 	}
 
-	return api.NilResult()
+	return libapi.NilResult()
 }

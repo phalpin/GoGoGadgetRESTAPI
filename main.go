@@ -5,7 +5,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/phalpin/GoGoGadgetRESTAPI/middleware"
 	"github.com/phalpin/GoGoGadgetRESTAPI/todo"
-	"github.com/phalpin/GoGoGadgetRESTAPI/todo/api"
+	"github.com/phalpin/libapi"
 	"net/http"
 	"os"
 )
@@ -66,5 +66,5 @@ func homeLink(w http.ResponseWriter, r *http.Request) {
 }
 
 type IServiceController interface {
-	GetHandlers() []*api.HandlerPackage
+	GetHandlers() []*libapi.HandlerPackage
 }
