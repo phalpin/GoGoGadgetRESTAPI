@@ -10,8 +10,7 @@ import (
 
 //#region ActionResult stuff
 type ActionResult struct {
-	Result           interface{}
-	ErrorEncountered error
+	Result interface{}
 }
 
 func ObjResult(retVal interface{}) (*ActionResult, error) {
